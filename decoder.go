@@ -80,11 +80,13 @@ func readTrack(r io.Reader) (Track, error) {
 
 	var steps [16]byte
 	err = binary.Read(r, binary.LittleEndian, steps[:])
-	var stepsBool [16]bool
+	var stepFlag uint16
 	for i, st := range steps {
-		stepsBool[i] = st > 0
+		if st > 0 {
+			stepFlag |= 1 << uint(i)
+		}
 	}
-	return Track{ID: int(header.ID), Name: string(b), Steps: stepsBool}, err
+	return Track{ID: int(header.ID), Name: string(b), steps: stepFlag}, err
 }
 
 // DecodeFile decodes the drum machine file found at the provided path
@@ -119,20 +121,27 @@ Tempo: %g
 }
 
 type Track struct {
-	ID   int
-	Name string
-	// TODO(dominikh): 16 steps can be stored as a 16 bit integer
-	// instead of 16 bools, which will use 16 bytes. However, it'd
-	// complicate our code and API for little gain. If we do end up
-	// storing thousands of tracks in memory, we can still optimize
-	// this.
-	Steps [16]bool
+	ID    int
+	Name  string
+	steps uint16
 }
 
-func formatSteps(t []bool) string {
-	s := make([]byte, len(t))
-	for i, b := range t {
-		if b {
+func (t Track) Step(i int) bool {
+	return (t.steps & (1 << uint(i))) > 0
+}
+
+func (t Track) Steps() []bool {
+	steps := make([]bool, 16)
+	for i := 0; i < 16; i++ {
+		steps[i] = t.Step(i)
+	}
+	return steps
+}
+
+func (t Track) formatSteps() string {
+	s := make([]byte, 16)
+	for i := 0; i < 16; i++ {
+		if t.Step(i) {
 			s[i] = 'x'
 		} else {
 			s[i] = '-'
@@ -142,11 +151,8 @@ func formatSteps(t []bool) string {
 }
 
 func (t *Track) String() string {
-	st := t.Steps
+	st := t.formatSteps()
 
 	return fmt.Sprintf("(%d) %s\t|%s|%s|%s|%s|", t.ID, t.Name,
-		formatSteps(st[0:4]),
-		formatSteps(st[4:8]),
-		formatSteps(st[8:12]),
-		formatSteps(st[12:16]))
+		st[0:4], st[4:8], st[8:12], st[12:16])
 }
