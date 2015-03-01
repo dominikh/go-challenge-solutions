@@ -32,11 +32,11 @@ var Magic = []byte("SPLICE")
 var ErrInvalidHeader = errors.New("input is missing valid SPLICE header")
 
 func Decode(r io.Reader) (*Pattern, error) {
-	var header struct {
+	var h1 struct {
 		Magic [6]byte
 		Size  int64
 	}
-	var p struct {
+	var h2 struct {
 		Version [32]byte
 		BPM     float32
 	}
@@ -45,20 +45,20 @@ func Decode(r io.Reader) (*Pattern, error) {
 	// in the same file format is weird, but otherwise there'd only be
 	// one byte for the file size, which seems awfully small, so let's
 	// assume the file format is weird.
-	err := binary.Read(r, binary.BigEndian, &header)
+	err := binary.Read(r, binary.BigEndian, &h1)
 	if err != nil {
 		return nil, err
 	}
-	if !bytes.Equal(header.Magic[:], Magic) {
+	if !bytes.Equal(h1.Magic[:], Magic) {
 		return nil, ErrInvalidHeader
 	}
-	if header.Size < 0 {
+	if h1.Size < 0 {
 		return nil, ErrInvalidHeader
 	}
 
-	limited := io.LimitReader(r, header.Size).(*io.LimitedReader)
+	limited := io.LimitReader(r, h1.Size).(*io.LimitedReader)
 	r = limited
-	err = binary.Read(r, binary.LittleEndian, &p)
+	err = binary.Read(r, binary.LittleEndian, &h2)
 	if err != nil {
 		return nil, err
 	}
@@ -71,12 +71,12 @@ func Decode(r io.Reader) (*Pattern, error) {
 		}
 		tracks = append(tracks, track)
 	}
-	version := p.Version[:]
+	version := h2.Version[:]
 	end := bytes.IndexByte(version, 0)
 	if end > -1 {
 		version = version[:end]
 	}
-	return &Pattern{Version: string(version), BPM: p.BPM, Tracks: tracks}, nil
+	return &Pattern{Version: string(version), BPM: h2.BPM, Tracks: tracks}, nil
 }
 
 func readTrack(r io.Reader) (Track, error) {
