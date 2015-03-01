@@ -20,8 +20,8 @@ File size: int64 (big endian)
 Version: [32]byte, null-terminated
 BPM: float32
 
-Tracks have variable length, consisting of a 5 byte header, a variable
-length name, and 16 bytes for the steps.
+Tracks are of variable length, consisting of a 5 byte header, a
+variable length name, and 16 bytes for the steps.
 
 Track ID: int32
 Length of name: byte
@@ -141,8 +141,17 @@ Tempo: %g
 }
 
 type Track struct {
-	ID    int
-	Name  string
+	ID   int
+	Name string
+
+	// We're trading speed for memory. Instead of storing 16 bools (==
+	// 16 bytes), which can be indexed directly, we store a single
+	// 16-bit int and use bit shifting and masks. The idea is that an
+	// old drum machine is bottlenecked by memory more than it is by
+	// CPU, that cache lines are tiny and that we're better off
+	// spending a cycle more on bit shifts than on fetching 16 bytes
+	// of memory. This is especially true if we want to store a lot of
+	// tracks at once.
 	steps uint16
 }
 
