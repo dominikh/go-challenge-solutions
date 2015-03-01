@@ -152,6 +152,14 @@ type Track struct {
 	steps uint16
 }
 
+func (t Track) SetStep(i int, b bool) {
+	if b {
+		t.steps |= 1 << uint(i)
+	} else {
+		t.steps &^= 1 << uint(i)
+	}
+}
+
 func (t Track) Step(i int) bool {
 	return (t.steps & (1 << uint(i))) > 0
 }
