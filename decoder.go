@@ -78,10 +78,9 @@ func readTrack(r io.Reader) (Track, error) {
 		return Track{}, err
 	}
 
-	var ticks [16]byte
-	// FIXME rename `ticks`
-	err = binary.Read(r, binary.LittleEndian, ticks[:])
-	return Track{ID: int(id), Name: string(b), Ticks: ticks}, err
+	var steps [16]byte
+	err = binary.Read(r, binary.LittleEndian, steps[:])
+	return Track{ID: int(id), Name: string(b), Steps: steps}, err
 }
 
 // DecodeFile decodes the drum machine file found at the provided path
@@ -125,10 +124,10 @@ Tempo: %g
 type Track struct {
 	ID    int
 	Name  string
-	Ticks [16]byte
+	Steps [16]byte
 }
 
-func formatTicks(t []byte) string {
+func formatSteps(t []byte) string {
 	s := ""
 	for _, b := range t {
 		if b == 1 {
@@ -141,10 +140,10 @@ func formatTicks(t []byte) string {
 }
 
 func (t *Track) String() string {
-	ti := t.Ticks
-	ticks := "|" + formatTicks(ti[0:4]) +
-		"|" + formatTicks(ti[4:8]) +
-		"|" + formatTicks(ti[8:12]) +
-		"|" + formatTicks(ti[12:16]) + "|"
-	return fmt.Sprintf("(%d) %s\t%s", t.ID, t.Name, ticks)
+	st := t.Steps
+	steps := "|" + formatSteps(st[0:4]) +
+		"|" + formatSteps(st[4:8]) +
+		"|" + formatSteps(st[8:12]) +
+		"|" + formatSteps(st[12:16]) + "|"
+	return fmt.Sprintf("(%d) %s\t%s", t.ID, t.Name, steps)
 }
