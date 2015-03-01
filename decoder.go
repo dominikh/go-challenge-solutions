@@ -17,7 +17,7 @@ The SPLICE header is 50 bytes long and consists of the following fields:
 
 File identifier: "SPLICE"
 File size: int64 (big endian)
-Version: [32]byte, null-terminated
+Version: [32]byte
 BPM: float32
 
 Tracks are of variable length, consisting of a 5 byte header, a
@@ -57,7 +57,7 @@ func Decode(r io.Reader) (*Pattern, error) {
 		return nil, ErrInvalidHeader
 	}
 
-	limited := io.LimitReader(r, int64(header.Size)).(*io.LimitedReader)
+	limited := io.LimitReader(r, header.Size).(*io.LimitedReader)
 	r = limited
 	err = binary.Read(r, binary.LittleEndian, &p)
 	if err != nil {
@@ -65,10 +65,7 @@ func Decode(r io.Reader) (*Pattern, error) {
 	}
 
 	var tracks []Track
-	for {
-		if limited.N == 0 {
-			break
-		}
+	for limited.N > 0 {
 		track, err := readTrack(r)
 		if err != nil {
 			return nil, err
