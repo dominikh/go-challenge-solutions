@@ -12,21 +12,24 @@ func Decode(r io.Reader) (*Pattern, error) {
 	p := &pattern{}
 	// 6 bytes SPLICE header, 7 bytes no idea
 	// TODO actually do read SPLICE header, for verification
-	// 1 byte is our file size, 7 bytes are unknown… maybe it's an
-	// int64 in big endian for the file size? but why would endianness
-	// switch in the middle of the file?
-	var scratch [13]byte
+	var scratch [6]byte
 	_, err := io.ReadFull(r, scratch[:])
 	if err != nil {
 		println(1)
 		return nil, err
 	}
-	var length byte
-	err = binary.Read(r, binary.LittleEndian, &length)
+	var length int64
+	// TODO(dominikh): Switching between little endian and big endian
+	// in the same file format is weird, but otherwise there'd only be
+	// one byte for the file size, which seems awfully small, so let's
+	// assume the file format is weird.
+	err = binary.Read(r, binary.BigEndian, &length)
 	if err != nil {
 		println(2)
 		return nil, err
 	}
+	// TODO error if length is negative
+	// TODO error if remaining length > 0 after we're done (trailing data is evil)
 	limited := io.LimitReader(r, int64(length)).(*io.LimitedReader)
 	r = limited
 	err = binary.Read(r, binary.LittleEndian, p)
@@ -144,24 +147,3 @@ func (t *Track) String() string {
 		"|" + formatTicks(ti[12:16]) + "|"
 	return fmt.Sprintf("(%d) %s\t%s", t.ID, t.Name, ticks)
 }
-
-// ${byte track name length}${string track name}16x${boolean}
-// ................
-
-// c5, 8f, c5, 93, 57
-
-// 00000000  53 50 4c 49 43 45 00 00  00 00 00 00 00 c5 30 2e  |SPLICE........0.|
-// 00000010  38 30 38 2d 61 6c 70 68  61 00 00 00 00 00 00 00  |808-alpha.......|
-// 00000020  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
-// 00000030  f0 42 00 00 00 00 04 6b  69 63 6b 01 00 00 00 01  |.B.....kick.....|
-// 00000040  00 00 00 01 00 00 00 01  00 00 00 01 00 00 00 05  |................|
-// 00000050  73 6e 61 72 65 00 00 00  00 01 00 00 00 00 00 00  |snare...........|
-// 00000060  00 01 00 00 00 02 00 00  00 04 63 6c 61 70 00 00  |..........clap..|
-// 00000070  00 00 01 00 01 00 00 00  00 00 00 00 00 00 03 00  |................|
-// 00000080  00 00 07 68 68 2d 6f 70  65 6e 00 00 01 00 00 00  |...hh-open......|
-// 00000090  01 00 01 00 01 00 00 00  01 00 04 00 00 00 08 68  |...............h|
-// 000000a0  68 2d 63 6c 6f 73 65 01  00 00 00 01 00 00 00 00  |h-close.........|
-// 000000b0  00 00 00 01 00 00 01 05  00 00 00 07 63 6f 77 62  |............cowb|
-// 000000c0  65 6c 6c 00 00 00 00 00  00 00 00 00 00 01 00 00  |ell.............|
-// 000000d0  00 00 00                                          |...|
-// 000000d3
