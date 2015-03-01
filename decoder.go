@@ -10,7 +10,7 @@ import (
 )
 
 var Magic = []byte("SPLICE")
-var ErrMissingHeader = errors.New("input is missing valid SPLICE header")
+var ErrInvalidHeader = errors.New("input is missing valid SPLICE header")
 
 func Decode(r io.Reader) (*Pattern, error) {
 	p := &pattern{}
@@ -20,7 +20,7 @@ func Decode(r io.Reader) (*Pattern, error) {
 		return nil, err
 	}
 	if !bytes.Equal(magic[:], Magic) {
-		return nil, ErrMissingHeader
+		return nil, ErrInvalidHeader
 	}
 	var length int64
 	// TODO(dominikh): Switching between little endian and big endian
@@ -31,7 +31,9 @@ func Decode(r io.Reader) (*Pattern, error) {
 	if err != nil {
 		return nil, err
 	}
-	// TODO error if length is negative
+	if length < 0 {
+		return nil, ErrInvalidHeader
+	}
 	// TODO error if remaining length > 0 after we're done (trailing data is evil)
 	limited := io.LimitReader(r, int64(length)).(*io.LimitedReader)
 	r = limited
@@ -82,7 +84,6 @@ func Decode(r io.Reader) (*Pattern, error) {
 // DecodeFile decodes the drum machine file found at the provided path
 // and returns a pointer to a parsed pattern which is the entry point to the
 // rest of the data.
-// TODO: implement
 func DecodeFile(path string) (*Pattern, error) {
 	f, err := os.Open(path)
 	if err != nil {
