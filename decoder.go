@@ -43,13 +43,12 @@ func Decode(r io.Reader) (*Pattern, error) {
 	var tracks []Track
 	// TODO sticky error
 	for {
+		if limited.N == 0 {
+			break
+		}
 		var id int32
 		err = binary.Read(r, binary.LittleEndian, &id)
 		if err != nil {
-			if err == io.EOF {
-				break
-				// FIXME check that we read zero bytes
-			}
 			return nil, err
 		}
 		var n byte
