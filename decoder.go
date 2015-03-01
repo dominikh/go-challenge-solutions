@@ -3,20 +3,24 @@ package drum
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 )
 
+var Magic = []byte("SPLICE")
+var ErrMissingHeader = errors.New("input is missing valid SPLICE header")
+
 func Decode(r io.Reader) (*Pattern, error) {
 	p := &pattern{}
-	// 6 bytes SPLICE header, 7 bytes no idea
-	// TODO actually do read SPLICE header, for verification
-	var scratch [6]byte
-	_, err := io.ReadFull(r, scratch[:])
+	var magic [6]byte
+	_, err := io.ReadFull(r, magic[:])
 	if err != nil {
-		println(1)
 		return nil, err
+	}
+	if !bytes.Equal(magic[:], Magic) {
+		return nil, ErrMissingHeader
 	}
 	var length int64
 	// TODO(dominikh): Switching between little endian and big endian
