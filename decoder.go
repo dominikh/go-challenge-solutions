@@ -143,9 +143,10 @@ func formatSteps(t []bool) string {
 
 func (t *Track) String() string {
 	st := t.Steps
-	steps := "|" + formatSteps(st[0:4]) +
-		"|" + formatSteps(st[4:8]) +
-		"|" + formatSteps(st[8:12]) +
-		"|" + formatSteps(st[12:16]) + "|"
-	return fmt.Sprintf("(%d) %s\t%s", t.ID, t.Name, steps)
+
+	return fmt.Sprintf("(%d) %s\t|%s|%s|%s|%s|", t.ID, t.Name,
+		formatSteps(st[0:4]),
+		formatSteps(st[4:8]),
+		formatSteps(st[8:12]),
+		formatSteps(st[12:16]))
 }
