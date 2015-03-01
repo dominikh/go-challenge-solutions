@@ -72,8 +72,8 @@ func readTrack(r io.Reader) (Track, error) {
 	if err != nil {
 		return Track{}, err
 	}
-	b := make([]byte, header.NameLength)
-	_, err = io.ReadFull(r, b)
+	name := make([]byte, header.NameLength)
+	_, err = io.ReadFull(r, name)
 	if err != nil {
 		return Track{}, err
 	}
@@ -86,7 +86,7 @@ func readTrack(r io.Reader) (Track, error) {
 			stepFlag |= 1 << uint(i)
 		}
 	}
-	return Track{ID: int(header.ID), Name: string(b), steps: stepFlag}, err
+	return Track{ID: int(header.ID), Name: string(name), steps: stepFlag}, err
 }
 
 // DecodeFile decodes the drum machine file found at the provided path
