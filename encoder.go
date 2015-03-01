@@ -2,9 +2,13 @@ package drum
 
 import (
 	"encoding/binary"
+	"errors"
 	"io"
 	"os"
 )
+
+var ErrVersionTooLong = errors.New("version string too long")
+var ErrTrackNameTooLong = errors.New("track name too long")
 
 type stickyErrWriter struct {
 	w   io.Writer
@@ -38,7 +42,7 @@ func Encode(w io.Writer, p *Pattern) error {
 	sw.bwrite(binary.BigEndian, int64(size))
 	var version [32]byte
 	if len(p.Version) > 32 {
-		// FIXME return error
+		return ErrVersionTooLong
 	}
 	copy(version[:], p.Version)
 	sw.bwrite(binary.LittleEndian, version)
@@ -50,7 +54,7 @@ func Encode(w io.Writer, p *Pattern) error {
 	}
 	for _, t := range p.Tracks {
 		if len(t.Name) > 0xFF {
-			// FIXME return error
+			return ErrTrackNameTooLong
 		}
 		h := header{
 			ID:         int32(t.ID),
