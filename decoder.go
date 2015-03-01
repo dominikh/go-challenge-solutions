@@ -13,36 +13,38 @@ var Magic = []byte("SPLICE")
 var ErrInvalidHeader = errors.New("input is missing valid SPLICE header")
 
 func Decode(r io.Reader) (*Pattern, error) {
-	p := &pattern{}
-	var magic [6]byte
-	_, err := io.ReadFull(r, magic[:])
-	if err != nil {
-		return nil, err
+	var header struct {
+		Magic [6]byte
+		Size  int64
 	}
-	if !bytes.Equal(magic[:], Magic) {
-		return nil, ErrInvalidHeader
+	var p struct {
+		Version [32]byte
+		BPM     float32
 	}
-	var length int64
+
 	// TODO(dominikh): Switching between little endian and big endian
 	// in the same file format is weird, but otherwise there'd only be
 	// one byte for the file size, which seems awfully small, so let's
 	// assume the file format is weird.
-	err = binary.Read(r, binary.BigEndian, &length)
+	err := binary.Read(r, binary.BigEndian, &header)
 	if err != nil {
 		return nil, err
 	}
-	if length < 0 {
+	if !bytes.Equal(header.Magic[:], Magic) {
 		return nil, ErrInvalidHeader
 	}
-	limited := io.LimitReader(r, int64(length)).(*io.LimitedReader)
+	if header.Size < 0 {
+		return nil, ErrInvalidHeader
+	}
+
+	limited := io.LimitReader(r, int64(header.Size)).(*io.LimitedReader)
 	r = limited
-	err = binary.Read(r, binary.LittleEndian, p)
+	err = binary.Read(r, binary.LittleEndian, &p)
 	if err != nil {
 		return nil, err
 	}
 
 	var tracks []Track
-	// TODO sticky error
 	for {
 		if limited.N == 0 {
 			break
@@ -62,17 +64,15 @@ func Decode(r io.Reader) (*Pattern, error) {
 }
 
 func readTrack(r io.Reader) (Track, error) {
-	var id int32
-	err := binary.Read(r, binary.LittleEndian, &id)
+	var header struct {
+		ID         int32
+		NameLength byte
+	}
+	err := binary.Read(r, binary.LittleEndian, &header)
 	if err != nil {
 		return Track{}, err
 	}
-	var n byte
-	err = binary.Read(r, binary.LittleEndian, &n)
-	if err != nil {
-		return Track{}, err
-	}
-	b := make([]byte, n)
+	b := make([]byte, header.NameLength)
 	_, err = io.ReadFull(r, b)
 	if err != nil {
 		return Track{}, err
@@ -84,7 +84,7 @@ func readTrack(r io.Reader) (Track, error) {
 	for i, st := range steps {
 		stepsBool[i] = st > 0
 	}
-	return Track{ID: int(id), Name: string(b), Steps: stepsBool}, err
+	return Track{ID: int(header.ID), Name: string(b), Steps: stepsBool}, err
 }
 
 // DecodeFile decodes the drum machine file found at the provided path
@@ -101,13 +101,6 @@ func DecodeFile(path string) (*Pattern, error) {
 
 // Pattern is the high level representation of the
 // drum pattern contained in a .splice file.
-// TODO: implement
-type pattern struct {
-	// FIXME it's probably null terminated, not fixed length. or the length is encoded somewhere else
-	Version [32]byte
-	BPM     float32
-}
-
 type Pattern struct {
 	Version string
 	BPM     float32
