@@ -34,7 +34,6 @@ func Decode(r io.Reader) (*Pattern, error) {
 	if length < 0 {
 		return nil, ErrInvalidHeader
 	}
-	// TODO error if remaining length > 0 after we're done (trailing data is evil)
 	limited := io.LimitReader(r, int64(length)).(*io.LimitedReader)
 	r = limited
 	err = binary.Read(r, binary.LittleEndian, p)
@@ -48,30 +47,11 @@ func Decode(r io.Reader) (*Pattern, error) {
 		if limited.N == 0 {
 			break
 		}
-		var id int32
-		err = binary.Read(r, binary.LittleEndian, &id)
+		track, err := readTrack(r)
 		if err != nil {
 			return nil, err
 		}
-		var n byte
-		err = binary.Read(r, binary.LittleEndian, &n)
-		if err != nil {
-			return nil, err
-		}
-		b := make([]byte, n)
-		_, err = io.ReadFull(r, b)
-		if err != nil {
-			return nil, err
-		}
-
-		var ticks [16]byte
-		// FIXME rename `ticks`
-		err = binary.Read(r, binary.LittleEndian, ticks[:])
-		if err != nil {
-			return nil, err
-		}
-
-		tracks = append(tracks, Track{ID: int(id), Name: string(b), Ticks: ticks})
+		tracks = append(tracks, track)
 	}
 	version := p.Version[:]
 	end := bytes.IndexByte(version, 0)
@@ -79,6 +59,29 @@ func Decode(r io.Reader) (*Pattern, error) {
 		version = version[:end]
 	}
 	return &Pattern{Version: string(version), BPM: p.BPM, Tracks: tracks}, nil
+}
+
+func readTrack(r io.Reader) (Track, error) {
+	var id int32
+	err := binary.Read(r, binary.LittleEndian, &id)
+	if err != nil {
+		return Track{}, err
+	}
+	var n byte
+	err = binary.Read(r, binary.LittleEndian, &n)
+	if err != nil {
+		return Track{}, err
+	}
+	b := make([]byte, n)
+	_, err = io.ReadFull(r, b)
+	if err != nil {
+		return Track{}, err
+	}
+
+	var ticks [16]byte
+	// FIXME rename `ticks`
+	err = binary.Read(r, binary.LittleEndian, ticks[:])
+	return Track{ID: int(id), Name: string(b), Ticks: ticks}, err
 }
 
 // DecodeFile decodes the drum machine file found at the provided path
