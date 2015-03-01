@@ -29,7 +29,6 @@ func Decode(r io.Reader) (*Pattern, error) {
 	// assume the file format is weird.
 	err = binary.Read(r, binary.BigEndian, &length)
 	if err != nil {
-		println(2)
 		return nil, err
 	}
 	// TODO error if length is negative
@@ -38,7 +37,6 @@ func Decode(r io.Reader) (*Pattern, error) {
 	r = limited
 	err = binary.Read(r, binary.LittleEndian, p)
 	if err != nil {
-		println(3)
 		return nil, err
 	}
 
@@ -52,19 +50,16 @@ func Decode(r io.Reader) (*Pattern, error) {
 				break
 				// FIXME check that we read zero bytes
 			}
-			println(4)
 			return nil, err
 		}
 		var n byte
 		err = binary.Read(r, binary.LittleEndian, &n)
 		if err != nil {
-			println(5)
 			return nil, err
 		}
 		b := make([]byte, n)
 		_, err = io.ReadFull(r, b)
 		if err != nil {
-			println(6)
 			return nil, err
 		}
 
@@ -72,7 +67,6 @@ func Decode(r io.Reader) (*Pattern, error) {
 		// FIXME rename `ticks`
 		err = binary.Read(r, binary.LittleEndian, ticks[:])
 		if err != nil {
-			println(7)
 			return nil, err
 		}
 
