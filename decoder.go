@@ -9,6 +9,26 @@ import (
 	"os"
 )
 
+/*
+With the exception of the file size, which is encoded in big endian,
+all values are encoded in little endian.
+
+The SPLICE header is 50 bytes long and consists of the following fields:
+
+File identifier: "SPLICE"
+File size: int64 (big endian)
+Version: [32]byte, null-terminated
+BPM: float32
+
+Tracks have variable length, consisting of a 5 byte header, a variable
+length name, and 16 bytes for the steps.
+
+Track ID: int32
+Length of name: byte
+Name: [length of name]byte
+Steps: [16]byte
+*/
+
 var Magic = []byte("SPLICE")
 var ErrInvalidHeader = errors.New("input is missing valid SPLICE header")
 
