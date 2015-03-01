@@ -119,21 +119,26 @@ Tempo: %g
 }
 
 type Track struct {
-	ID    int
-	Name  string
+	ID   int
+	Name string
+	// TODO(dominikh): 16 steps can be stored as a 16 bit integer
+	// instead of 16 bools, which will use 16 bytes. However, it'd
+	// complicate our code and API for little gain. If we do end up
+	// storing thousands of tracks in memory, we can still optimize
+	// this.
 	Steps [16]bool
 }
 
 func formatSteps(t []bool) string {
-	s := ""
-	for _, b := range t {
+	s := make([]byte, len(t))
+	for i, b := range t {
 		if b {
-			s += "x"
+			s[i] = 'x'
 		} else {
-			s += "-"
+			s[i] = '-'
 		}
 	}
-	return s
+	return string(s)
 }
 
 func (t *Track) String() string {
