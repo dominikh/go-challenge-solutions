@@ -94,15 +94,13 @@ func readTrack(r io.Reader) (Track, error) {
 		return Track{}, err
 	}
 
-	var steps [16]byte
-	err = binary.Read(r, binary.LittleEndian, steps[:])
-	var stepFlag uint16
-	for i, st := range steps {
-		if st > 0 {
-			stepFlag |= 1 << uint(i)
-		}
+	var b [16]byte
+	var steps [16]bool
+	err = binary.Read(r, binary.LittleEndian, b[:])
+	for i, step := range b {
+		steps[i] = step > 0
 	}
-	return Track{ID: int(header.ID), Name: string(name), steps: stepFlag}, err
+	return Track{ID: int(header.ID), Name: string(name), Steps: steps[:]}, err
 }
 
 // DecodeFile decodes the drum machine file found at the provided path

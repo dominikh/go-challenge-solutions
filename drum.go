@@ -24,44 +24,15 @@ Tempo: %g
 }
 
 type Track struct {
-	ID   int
-	Name string
-
-	// We're trading speed for memory. Instead of storing 16 bools (==
-	// 16 bytes), which can be indexed directly, we store a single
-	// 16-bit int and use bit shifting and masks. The idea is that an
-	// old drum machine is bottlenecked by memory more than it is by
-	// CPU, that cache lines are tiny and that we're better off
-	// spending a cycle more on bit shifts than on fetching 16 bytes
-	// of memory. This is especially true if we want to store a lot of
-	// tracks at once.
-	steps uint16
-}
-
-func (t Track) SetStep(i int, b bool) {
-	if b {
-		t.steps |= 1 << uint(i)
-	} else {
-		t.steps &^= 1 << uint(i)
-	}
-}
-
-func (t Track) Step(i int) bool {
-	return (t.steps & (1 << uint(i))) > 0
-}
-
-func (t Track) Steps() []bool {
-	steps := make([]bool, 16)
-	for i := 0; i < 16; i++ {
-		steps[i] = t.Step(i)
-	}
-	return steps
+	ID    int
+	Name  string
+	Steps []bool
 }
 
 func (t Track) formatSteps() string {
 	s := make([]byte, 16)
-	for i := 0; i < 16; i++ {
-		if t.Step(i) {
+	for i, step := range t.Steps {
+		if step {
 			s[i] = 'x'
 		} else {
 			s[i] = '-'

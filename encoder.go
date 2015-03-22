@@ -62,8 +62,8 @@ func Encode(w io.Writer, p *Pattern) error {
 		}
 		sw.bwrite(binary.LittleEndian, h)
 		sw.write([]byte(t.Name))
-		for i := 0; i < 16; i++ {
-			if t.Step(i) {
+		for _, step := range t.Steps {
+			if step {
 				sw.write([]byte{1})
 			} else {
 				sw.write([]byte{0})
